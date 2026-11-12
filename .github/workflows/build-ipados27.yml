@@ -94,6 +94,13 @@ jobs:
           new2 = "return next((e['dev-entry'] for e in entities if e.get('content-hint') in ('GUID_partition_scheme', 'Apple_APFS')), entities[0]['dev-entry'])"
           s = s.replace(old2, new2)
           p.write_text(s)
+          old3 = "run(['python3', self.tree / 'kits/VerifiedRoot/tests/check.py', '--output', host, '--openssl-prefix', openssl],"
+          new3 = "check = self.tree / 'kits/VerifiedRoot/tests/check.py'
+            if not check.is_file():
+                check = self.unixnu / 'kits/VerifiedRoot/tests/check.py'
+            run(['python3', check, '--output', host, '--openssl-prefix', openssl],"
+          s = s.replace(old3, new3)
+          p.write_text(s)
           PY
           [ -e "$DEV/ipados27/package" ] || ln -s ../package "$DEV/ipados27/package"
           grep -E '^build =|^version =|^url =' "$DEV/ipados27/board.toml" | head -5
