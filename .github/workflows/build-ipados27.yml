@@ -69,18 +69,15 @@ jobs:
           p = Path('UniXNU-droidvm/ipados27/board.toml')
           text = p.read_text()
           if '[ipsw]' not in text:
-              text += '''
-
-[ipsw]
-url = "https://updates.cdn-apple.com/2026FallFCS/6074e110-d48d-40c2-b0e8-b611520941a3/iPad17,1,iPad17,2,iPad17,3,iPad17,4_27.0.1_24A446_Restore.ipsw"
-product = "iPad17,3"
-version = "27.0.1"
-build = "24A446"
-device_class = "j820ap"
-chip_id = 33090
-board_id = 12
-fetch = ["KernelCache", "DeviceTree", "StaticTrustCache", "Cryptex1,SystemTrustCache"]
-'''
+              text += '\n[ipsw]\n'
+              text += 'url = "https://updates.cdn-apple.com/2026FallFCS/6074e110-d48d-40c2-b0e8-b611520941a3/iPad17,1,iPad17,2,iPad17,3,iPad17,4_27.0.1_24A446_Restore.ipsw"\n'
+              text += 'product = "iPad17,3"\n'
+              text += 'version = "27.0.1"\n'
+              text += 'build = "24A446"\n'
+              text += 'device_class = "j820ap"\n'
+              text += 'chip_id = 33090\n'
+              text += 'board_id = 12\n'
+              text += 'fetch = ["KernelCache", "DeviceTree", "StaticTrustCache", "Cryptex1,SystemTrustCache"]\n'
               p.write_text(text)
           print('board ipsw:', p.read_text().split('[ipsw]', 1)[1].splitlines()[1:4])
           PY
