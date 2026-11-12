@@ -45,7 +45,7 @@ jobs:
 
       - name: Install build dependencies
         run: |
-          brew install cmake ninja dtc rustup llvm || true
+          brew install cmake ninja dtc rustup llvm blacktop/tap/ipsw || true
           if ! command -v rustup >/dev/null 2>&1; then
             curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --no-modify-path
           fi
@@ -81,8 +81,33 @@ jobs:
               p.write_text(text)
           print('board ipsw:', p.read_text().split('[ipsw]', 1)[1].splitlines()[1:4])
           PY
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path('UniXNU-droidvm/ipados27/scripts/build-droidvm-all.py')
+          s = p.read_text()
+          s = s.replace("OS_DMG, SYSTEMOS_DMG = '044-76040-038.dmg', '044-76034-038.dmg'", "OS_DMG, SYSTEMOS_DMG = '043-68950-668.dmg', '043-69086-713.dmg'")
+          s = s.replace("OS_IMAGE_SHA256 = 'e5634d04a8ac35f024845f583394e0a35deb26a04cb0c00286a8674e25a9a4f2'", "OS_IMAGE_SHA256 = '8a12cdad43f8f0d33dadcf01a800a560222baf40c05f71374c460ba57ba3a739'")
+          p.write_text(s)
+          PY
           [ -e "$DEV/ipados27/package" ] || ln -s ../package "$DEV/ipados27/package"
           grep -E '^build =|^version =|^url =' "$DEV/ipados27/board.toml" | head -5
+
+      - name: Prefetch and decrypt IPSW volumes
+        working-directory: UniXNU
+        env:
+          PATH: /Users/runner/.cargo/bin:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin
+          GITHUB_TOKEN: ${{ github.token }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          ./unixnu -D ../UniXNU-droidvm/ipados27 ipsw fetch OS Cryptex1,SystemOS
+          python3 - <<'PY'
+          import sys
+          from pathlib import Path
+          sys.path.insert(0, 'scripts')
+          from unixnu import ipsw
+          for p in sorted(Path('out/ipsw/24A446').glob('*.dmg.aea')):
+              print(ipsw.decrypt_aea(p))
+          PY
 
       - name: Build iPadOS 27 image
         working-directory: UniXNU-droidvm/ipados27
