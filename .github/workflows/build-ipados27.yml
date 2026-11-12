@@ -98,8 +98,9 @@ jobs:
           PATH: /Users/runner/.cargo/bin:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin
           GITHUB_TOKEN: ${{ github.token }}
           GH_TOKEN: ${{ github.token }}
+          UNIXNU_DEVICE: ../UniXNU-droidvm/ipados27
         run: |
-          ./unixnu -D ../UniXNU-droidvm/ipados27 ipsw fetch OS Cryptex1,SystemOS
+          ./unixnu ipsw fetch OS Cryptex1,SystemOS
           python3 - <<'PY'
           import sys
           from pathlib import Path
