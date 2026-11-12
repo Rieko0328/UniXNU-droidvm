@@ -58,6 +58,8 @@ jobs:
         working-directory: UniXNU-droidvm
         env:
           PATH: /Users/runner/.cargo/bin:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin
+          GITHUB_TOKEN: ${{ github.token }}
+          GH_TOKEN: ${{ github.token }}
         run: |
           python3 scripts/build-droidvm-all.py \
             --unixnu ../UniXNU \
