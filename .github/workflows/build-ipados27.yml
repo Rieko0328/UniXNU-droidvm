@@ -45,7 +45,7 @@ jobs:
 
       - name: Install build dependencies
         run: |
-          brew install cmake ninja dtc rustup || true
+          brew install cmake ninja dtc rustup llvm || true
           if ! command -v rustup >/dev/null 2>&1; then
             curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --no-modify-path
           fi
@@ -79,6 +79,8 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: droidvm-ipados27-logs
-          path: UniXNU/out/droidvm/build-all/logs
+          path: |
+            UniXNU/out/droidvm/build-all/logs
+            UniXNU/out/droidvm/logs
           if-no-files-found: warn
           retention-days: 7
