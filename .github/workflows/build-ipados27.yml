@@ -90,6 +90,9 @@ jobs:
           old = "return next(e['dev-entry'] for e in attached['system-entities'] if e.get('content-hint') == 'GUID_partition_scheme')"
           new = "return next((e['dev-entry'] for e in attached['system-entities'] if e.get('content-hint') in ('GUID_partition_scheme', 'Apple_APFS')), attached['system-entities'][0]['dev-entry'])"
           s = s.replace(old, new)
+          old2 = "return next(e['dev-entry'] for e in entities if e.get('content-hint') == 'GUID_partition_scheme')"
+          new2 = "return next((e['dev-entry'] for e in entities if e.get('content-hint') in ('GUID_partition_scheme', 'Apple_APFS')), entities[0]['dev-entry'])"
+          s = s.replace(old2, new2)
           p.write_text(s)
           PY
           [ -e "$DEV/ipados27/package" ] || ln -s ../package "$DEV/ipados27/package"
