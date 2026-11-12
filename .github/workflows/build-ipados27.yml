@@ -87,6 +87,9 @@ jobs:
           s = p.read_text()
           s = s.replace("OS_DMG, SYSTEMOS_DMG = '044-76040-038.dmg', '044-76034-038.dmg'", "OS_DMG, SYSTEMOS_DMG = '043-68950-668.dmg', '043-69086-713.dmg'")
           s = s.replace("OS_IMAGE_SHA256 = 'e5634d04a8ac35f024845f583394e0a35deb26a04cb0c00286a8674e25a9a4f2'", "OS_IMAGE_SHA256 = '8a12cdad43f8f0d33dadcf01a800a560222baf40c05f71374c460ba57ba3a739'")
+          old = "return next(e['dev-entry'] for e in attached['system-entities'] if e.get('content-hint') == 'GUID_partition_scheme')"
+          new = "return next((e['dev-entry'] for e in attached['system-entities'] if e.get('content-hint') in ('GUID_partition_scheme', 'Apple_APFS')), attached['system-entities'][0]['dev-entry'])"
+          s = s.replace(old, new)
           p.write_text(s)
           PY
           [ -e "$DEV/ipados27/package" ] || ln -s ../package "$DEV/ipados27/package"
