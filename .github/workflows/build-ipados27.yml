@@ -60,13 +60,10 @@ jobs:
           DEV=UniXNU-droidvm
           TMP=$(mktemp -d)
           mkdir -p "$TMP/generic" "$TMP/board"
-          chmod -R a+rX "$DEV/scripts" "$DEV/ipados27/scripts" || true
-          sudo cp -RL "$DEV/scripts/." "$TMP/generic/"
-          sudo cp -RL "$DEV/ipados27/scripts/." "$TMP/board/"
-          sudo cp -RL "$TMP/generic/." "$DEV/ipados27/scripts/"
-          sudo cp -RL "$TMP/board/." "$DEV/ipados27/scripts/"
-          sudo cp "$DEV/scripts/build-droidvm-all.py" "$DEV/ipados27/scripts/build-droidvm-all.py"
-          sudo chown -R "$(id -u):$(id -g)" "$DEV/ipados27/scripts"
+          git -C "$DEV" archive HEAD scripts | tar -x -C "$TMP/generic" --strip-components=1
+          git -C "$DEV" archive HEAD ipados27/scripts | tar -x -C "$TMP/board" --strip-components=2
+          tar -C "$TMP/generic" -cf - . | tar -C "$DEV/ipados27/scripts" -xf -
+          tar -C "$TMP/board" -cf - . | tar -C "$DEV/ipados27/scripts" -xf -
           [ -e "$DEV/ipados27/package" ] || ln -s ../package "$DEV/ipados27/package"
           grep -E '^build =|^version =|^url =' "$DEV/ipados27/board.toml" | head -5
 
