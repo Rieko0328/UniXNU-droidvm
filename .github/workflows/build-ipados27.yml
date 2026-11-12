@@ -54,15 +54,29 @@ jobs:
           python3 --version
           rustc --version || true
 
+      - name: Assemble iPadOS 27 board overlay
+        run: |
+          set -e
+          DEV=UniXNU-droidvm
+          TMP=$(mktemp -d)
+          mkdir -p "$TMP/generic" "$TMP/board"
+          cp -a "$DEV/scripts/." "$TMP/generic/"
+          cp -a "$DEV/ipados27/scripts/." "$TMP/board/"
+          cp -a "$TMP/generic/." "$DEV/ipados27/scripts/"
+          cp -a "$TMP/board/." "$DEV/ipados27/scripts/"
+          cp "$DEV/scripts/build-droidvm-all.py" "$DEV/ipados27/scripts/build-droidvm-all.py"
+          [ -e "$DEV/ipados27/package" ] || ln -s ../package "$DEV/ipados27/package"
+          grep -E '^build =|^version =|^url =' "$DEV/ipados27/board.toml" | head -5
+
       - name: Build iPadOS 27 image
-        working-directory: UniXNU-droidvm
+        working-directory: UniXNU-droidvm/ipados27
         env:
           PATH: /Users/runner/.cargo/bin:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin
           GITHUB_TOKEN: ${{ github.token }}
           GH_TOKEN: ${{ github.token }}
         run: |
           python3 scripts/build-droidvm-all.py \
-            --unixnu ../UniXNU \
+            --unixnu ../../UniXNU \
             --unique-chip-id 0123456789abcdef
 
       - name: Upload release images
