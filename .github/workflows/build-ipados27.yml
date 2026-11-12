@@ -87,19 +87,9 @@ jobs:
           s = p.read_text()
           s = s.replace("OS_DMG, SYSTEMOS_DMG = '044-76040-038.dmg', '044-76034-038.dmg'", "OS_DMG, SYSTEMOS_DMG = '043-68950-668.dmg', '043-69086-713.dmg'")
           s = s.replace("OS_IMAGE_SHA256 = 'e5634d04a8ac35f024845f583394e0a35deb26a04cb0c00286a8674e25a9a4f2'", "OS_IMAGE_SHA256 = '8a12cdad43f8f0d33dadcf01a800a560222baf40c05f71374c460ba57ba3a739'")
-          old = "return next(e['dev-entry'] for e in attached['system-entities'] if e.get('content-hint') == 'GUID_partition_scheme')"
-          new = "return next((e['dev-entry'] for e in attached['system-entities'] if e.get('content-hint') in ('GUID_partition_scheme', 'Apple_APFS')), attached['system-entities'][0]['dev-entry'])"
-          s = s.replace(old, new)
-          old2 = "return next(e['dev-entry'] for e in entities if e.get('content-hint') == 'GUID_partition_scheme')"
-          new2 = "return next((e['dev-entry'] for e in entities if e.get('content-hint') in ('GUID_partition_scheme', 'Apple_APFS')), entities[0]['dev-entry'])"
-          s = s.replace(old2, new2)
-          old4 = "self.unixnu_cmd('tree', logfile=self.logs / 'tree.log')"
-          new4 = old4 + "; [shutil.copy2(f, self.tree / 'scripts' / f.name) for f in (self.unixnu / 'scripts').glob('*.py') if not (self.tree / 'scripts' / f.name).exists()]"
-          s = s.replace(old4, new4)
-          p.write_text(s)
-          old3 = "run(['python3', self.tree / 'kits/VerifiedRoot/tests/check.py', '--output', host, '--openssl-prefix', openssl],"
-          new3 = "check = (self.tree / 'kits/VerifiedRoot/tests/check.py') if (self.tree / 'kits/VerifiedRoot/tests/check.py').is_file() else (self.unixnu / 'kits/VerifiedRoot/tests/check.py'); run(['python3', check, '--output', host, '--openssl-prefix', openssl],"
-          s = s.replace(old3, new3)
+          s = s.replace("self.work = self.out / self.board['board']['name']", "self.work = self.out / 'droidvm' / 'ipados-27.0.1-24A446' / 'droidvm_ipados27'")
+          s = s.replace("return next(e['dev-entry'] for e in attached['system-entities'] if e.get('content-hint') == 'GUID_partition_scheme')", "return next((e['dev-entry'] for e in attached['system-entities'] if e.get('content-hint') in ('GUID_partition_scheme', 'Apple_APFS')), attached['system-entities'][0]['dev-entry'])")
+          s = s.replace("return next(e['dev-entry'] for e in entities if e.get('content-hint') == 'GUID_partition_scheme')", "return next((e['dev-entry'] for e in entities if e.get('content-hint') in ('GUID_partition_scheme', 'Apple_APFS')), entities[0]['dev-entry'])")
           p.write_text(s)
           PY
           [ -e "$DEV/ipados27/package" ] || ln -s ../package "$DEV/ipados27/package"
@@ -139,7 +129,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: droidvm-ipados27-release
-          path: UniXNU/out/droidvm/release
+          path: UniXNU/out/droidvm/ipados-27.0.1-24A446/droidvm_ipados27/release
           if-no-files-found: warn
           retention-days: 7
 
@@ -149,7 +139,7 @@ jobs:
         with:
           name: droidvm-ipados27-logs
           path: |
-            UniXNU/out/droidvm/build-all/logs
-            UniXNU/out/droidvm/logs
+            UniXNU/out/droidvm/ipados-27.0.1-24A446/droidvm_ipados27/build-all/logs
+            UniXNU/out/droidvm/ipados-27.0.1-24A446/droidvm_ipados27/logs
           if-no-files-found: warn
           retention-days: 7
