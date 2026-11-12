@@ -1,0 +1,82 @@
+name: Build DroidVM iPadOS 27
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [wip/hackintosh]
+
+jobs:
+  build:
+    runs-on: macos-26
+    timeout-minutes: 360
+
+    steps:
+      - name: Checkout UniXNU (droidvm branch)
+        uses: actions/checkout@v4
+        with:
+          repository: Rieko0328/UniXNU
+          ref: wip/droidvm
+          path: UniXNU
+
+      - name: Checkout UniXNU-droidvm (hackintosh branch)
+        uses: actions/checkout@v4
+        with:
+          repository: Rieko0328/UniXNU-droidvm
+          ref: wip/hackintosh
+          path: UniXNU-droidvm
+
+      - name: Show Xcode and disk
+        run: |
+          ls -1 /Applications | grep -i Xcode || true
+          xcodebuild -version || true
+          df -h /
+          sw_vers
+
+      - name: Select Xcode 27 (if present)
+        run: |
+          if [ -d /Applications/Xcode_27.app ]; then
+            sudo xcode-select -s /Applications/Xcode_27.app/Contents/Developer
+          elif [ -d /Applications/Xcode_27.1.app ]; then
+            sudo xcode-select -s /Applications/Xcode_27.1.app/Contents/Developer
+          else
+            echo "No Xcode 27 found; continuing with default Xcode"
+          fi
+          xcodebuild -version
+
+      - name: Install build dependencies
+        run: |
+          brew install cmake ninja dtc rustup || true
+          if ! command -v rustup >/dev/null 2>&1; then
+            curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --no-modify-path
+          fi
+          export PATH="$HOME/.cargo/bin:$PATH"
+          rustup target add aarch64-apple-ios || true
+          python3 --version
+          rustc --version || true
+
+      - name: Build iPadOS 27 image
+        working-directory: UniXNU-droidvm
+        env:
+          PATH: /Users/runner/.cargo/bin:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin
+        run: |
+          python3 scripts/build-droidvm-all.py \
+            --unixnu ../UniXNU \
+            --unique-chip-id 0123456789abcdef
+
+      - name: Upload release images
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: droidvm-ipados27-release
+          path: UniXNU/out/droidvm/release
+          if-no-files-found: warn
+          retention-days: 7
+
+      - name: Upload logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: droidvm-ipados27-logs
+          path: UniXNU/out/droidvm/build-all/logs
+          if-no-files-found: warn
+          retention-days: 7
