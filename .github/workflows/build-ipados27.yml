@@ -68,9 +68,7 @@ jobs:
           from pathlib import Path
           p = Path('UniXNU-droidvm/ipados27/board.toml')
           text = p.read_text()
-          if '
-[ipsw]
-' not in text:
+          if not any(line.strip() == '[ipsw]' for line in text.splitlines()):
               text += '\n[ipsw]\n'
               text += 'url = "https://updates.cdn-apple.com/2026FallFCS/6074e110-d48d-40c2-b0e8-b611520941a3/iPad17,1,iPad17,2,iPad17,3,iPad17,4_27.0.1_24A446_Restore.ipsw"\n'
               text += 'product = "iPad17,3"\n'
