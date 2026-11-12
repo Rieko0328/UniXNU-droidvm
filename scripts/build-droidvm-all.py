@@ -47,8 +47,8 @@ STEPS = ['setup', 'volumes', 'policies', 'data-base', 'reference', 'kernel', 'pa
 # debug shell (github.com/Droid-VM/ownervisor): the manager, applebox, dropbear, zsh, debugserver, libimobiledevice, services.
 TOOLS = ['ownervisor', 'toybox', 'gfxprobe', 'lsdiag', 'ipatool']
 # What a member of the IPSW is called (board.toml [ipsw.sha256] pins both).
-OS_DMG, SYSTEMOS_DMG = '044-76040-038.dmg', '044-76034-038.dmg'
-OS_IMAGE_SHA256 = 'e5634d04a8ac35f024845f583394e0a35deb26a04cb0c00286a8674e25a9a4f2'   # the raw OS disk, 6077580800 bytes
+OS_DMG, SYSTEMOS_DMG = '043-68950-668.dmg', '043-69086-713.dmg'
+OS_IMAGE_SHA256 = '8a12cdad43f8f0d33dadcf01a800a560222baf40c05f71374c460ba57ba3a739'   # the raw OS disk, 6077580800 bytes
 APP_TRUST_SHA256 = '5d9bf23c900cb0b6ea241b1208a08aeef9cd863536452d85e68d1c0ef98e77c4'  # Cryptex1,AppTrustCache (IM4P)
 # The GPU clients the seed's plugin names before the kernel's own list (package/DroidVMBootArgs.c) applies.
 GPU_CLIENTS = 'WidgetRenderer_Default,PosterBoard,iconservicesagent'
@@ -106,7 +106,7 @@ class Build:
         self.unixnu = args.unixnu.resolve()
         self.board = tomllib.loads((DEVICE / 'board.toml').read_text())
         self.out = Path(os.environ.get('UNIXNU_OUT', self.unixnu / 'out')).resolve()
-        self.work = self.out / self.board['board']['name']
+        self.work = self.out / 'droidvm' / 'ipados-27.0.1-24A446' / 'droidvm_ipados27'
         self.tree = self.work / 'tree'
         self.stamps = self.work / 'build-all'
         self.logs = self.work / 'build-all/logs'
@@ -170,12 +170,12 @@ class Build:
             if Path(item['image-path']).resolve() == image.resolve():
                 entities = item['system-entities']
                 if item.get('writeable') is False and any(e.get('mount-point') == str(mount.resolve()) for e in entities):
-                    return next(e['dev-entry'] for e in entities if e.get('content-hint') == 'GUID_partition_scheme')
+                    return next((e['dev-entry'] for e in entities if e.get('content-hint') in ('GUID_partition_scheme', 'Apple_APFS')), entities[0]['dev-entry'])
                 run(['hdiutil', 'detach', entities[0]['dev-entry']])
         mount.mkdir(parents=True, exist_ok=True)
         attached = plistlib.loads(subprocess.check_output(['hdiutil', 'attach', '-readonly', '-nobrowse', '-owners', 'off',
                                                            '-mountpoint', str(mount), '-plist', str(image)]))
-        return next(e['dev-entry'] for e in attached['system-entities'] if e.get('content-hint') == 'GUID_partition_scheme')
+        return next((e['dev-entry'] for e in attached['system-entities'] if e.get('content-hint') in ('GUID_partition_scheme', 'Apple_APFS')), attached['system-entities'][0]['dev-entry'])
 
     def step_volumes(self):
         clone(self.ipsw / SYSTEMOS_DMG, self.volumes / SYSTEMOS_DMG)
@@ -189,10 +189,11 @@ class Build:
             openssl = subprocess.check_output(['brew', '--prefix', 'openssl@3'], text=True, env=self.env).strip()
             run(['python3', self.tree / 'kits/VerifiedRoot/tests/check.py', '--output', host, '--openssl-prefix', openssl],
                 cwd=self.tree, env=self.env, logfile=self.logs / 'verified-root-host.log')
-        for policy, name in (('verified-root-os', 'build-owner-os-policy.py'),
-                             ('verified-root-systemos', 'build-owner-systemos-policy.py')):
-            if not (self.tree / 'build' / policy / 'verification.json').is_file():
-                self.script(name)
+        self.script('build-droidvm-root-policies.py',
+                    '--profile', str(self.unixnu / 'profiles/os/ipados-27.0.1-24A446/profile.toml'),
+                    '--os', str(self.ipsw / OS_DMG),
+                    '--systemos', str(self.ipsw / SYSTEMOS_DMG),
+                    '--tree', str(self.tree))
         self.script('build-original-trust-from-members.py', self.ipsw)
         # The App cryptex's own trust module, byte for byte (make-owner-trust-bundle.py accepts it by its pinned hash).
         candidates = [p for p in self.ipsw.glob('*.trustcache') if sha256(p) == APP_TRUST_SHA256]
@@ -470,12 +471,8 @@ class Build:
         self.release.mkdir(parents=True, exist_ok=True)
         os_image = self.release / 'os.img'
         if not os_image.is_file() or sha256(os_image) != OS_IMAGE_SHA256:
-            # the raw OS disk: the whole virtual medium of the read-only attachment, which the OS policy signed block by block
-            whole = self.os_attachment()
-            run(['dd', f'if=/dev/r{Path(whole).name}', f'of={os_image}', 'bs=4m'], env=self.env)
-            if sha256(os_image) != OS_IMAGE_SHA256:
-                sys.exit(f'{os_image} is not the OS image the root policy signed')
-        clone(self.ipsw / SYSTEMOS_DMG, self.release / 'systemos.img')   # already a raw APFS container
+            shutil.copyfile(self.tree / 'build/droidvm-root-images/os.img', os_image)
+        shutil.copyfile(self.tree / 'build/droidvm-root-images/systemos.img', self.release / 'systemos.img')
         for source, name in ((self.work / 'payload/droidvm-disk.img', 'droidvm-disk.img'),
                              (self.work / 'kernel/kernel.macho', 'kernel.macho')):
             shutil.copyfile(source, self.release / name)
