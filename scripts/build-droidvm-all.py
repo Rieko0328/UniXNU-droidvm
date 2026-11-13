@@ -41,7 +41,7 @@ import tomllib
 from pathlib import Path
 
 DEVICE = Path(__file__).resolve().parents[1]
-STEPS = ['setup', 'volumes', 'policies', 'data-base', 'reference', 'kernel', 'package', 'tools', 'plugin', 'data', 'trust',
+STEPS = ['setup', 'volumes', 'policies', 'data-base', 'kernel', 'package', 'tools', 'plugin', 'data', 'trust',
          'payload', 'images']
 # The owner tools, in build order: each writes build/<name>/... and build/owner-trust-extra/<name>.json. ownervisor is the
 # debug shell (github.com/Droid-VM/ownervisor): the manager, applebox, dropbear, zsh, debugserver, libimobiledevice, services.
