@@ -113,7 +113,7 @@ class Build:
         self.release = self.work / 'release'
         self.ipsw = self.out / 'ipsw' / self.board['ipsw']['build']
         self.volumes = self.tree / '.cache/firmware/target-volumes'
-        self.data = self.tree / 'build/droidvm-data'
+        self.data = self.tree / 'build/droidvm-data-24A446'
         self.scratch = Path('/tmp') / f'droidvm-build-{os.environ.get("USER", "build")}'
         self.env = dict(os.environ, PATH=os.pathsep.join([str(Path.home() / '.cargo/bin'), '/opt/homebrew/bin',
                                                           os.environ.get('PATH', '')]))
@@ -242,42 +242,23 @@ class Build:
         return base
 
     def step_data_base(self):
-        test = self.tree / 'drivers/DarwinBoot/Test'
-        if not test.is_dir():
-            src = self.unixnu / 'drivers/DarwinBoot'
-            dst = self.tree / 'drivers/DarwinBoot'
-            if dst.is_symlink():
-                dst = dst.resolve()
-            shutil.copytree(src, dst, dirs_exist_ok=True, symlinks=True)
+        # The iPadOS 27 board's own seed: 24A446 /private/var, APFS expanded records and the J820 prefs.
         self.os_attachment()
         self.data.mkdir(parents=True, exist_ok=True)
-        fixture = self.tree / 'build/owner-data-fixture'
-        if not (fixture / 'owner-data-32.cdr').is_file():
-            # A fresh APFS volume holding the OS's own /private/var: its volume UUID is new each time (apply_data_uuid).
-            scratch = self.scratch / 'owner-data-fixture'
-            if scratch.exists():
-                shutil.rmtree(scratch)
-            self.seed_script('prepare-owner-data-fixture.py', '--output', scratch)
-            fixture.mkdir(parents=True, exist_ok=True)
-            for name in ('owner-data-32.cdr', 'seed.json'):
-                shutil.copyfile(scratch / name, fixture / name)
-        if not (self.data / 'data-32.dbr').is_file():
-            self.pack(fixture / 'owner-data-32.cdr', self.data / 'data-32.dbr')
-        # the App cryptex is attached too: a copy on the system volume
-        cryptex = self.scratch / self.app_cryptex()
-        shutil.copyfile(self.ipsw / self.app_cryptex(), cryptex)
-        self.seed_chain(self.data / 'data-32.dbr', [
-            ('data-2g.dbr', ['seed-data-grow.py', '--volatile', '--gib', '2']),
-            ('data-2g-skip.dbr', [self.board['payload']['skip_setup_tool'].split('/')[-1]]),
-            ('data-2g-skip-app.dbr', ['add-app-cryptex-data.py', '{base}', str(cryptex), '{out}'])])
+        if not (self.data / 'data-2g-27.dbr').is_file():
+            self.script('build-droidvm-data-seed.py',
+                        '--tree', str(self.tree),
+                        '--profile', str(self.unixnu / 'profiles/os/ipados-27.0.1-24A446/profile.toml'),
+                        '--ipsw', str(self.ipsw),
+                        '--gib', '2',
+                        '--packer', str(self.tree / 'drivers/DarwinBoot/Test'),
+                        logfile=self.logs / 'data-seed.log')
         self.apply_data_uuid()
 
     def apply_data_uuid(self):
-        """The kernel mounts Data by its APFS volume UUID, and every new fixture has a new one: put it into the .config
-        (unixnu defconfig puts the defconfig's back)."""
-        seed = json.loads((self.tree / 'build/owner-data-fixture/seed.json').read_text())
+        seed = json.loads((self.data / 'seed.json').read_text())
         self.set_config('OWNER_DATA_VOLUME_UUID', '"' + seed['volume_uuid'] + '"')
-        log(f'Data volume UUID {seed["volume_uuid"]}')
+        log(f"Data volume UUID {seed['volume_uuid']}")
 
     def app_cryptex(self):
         for path in sorted(self.ipsw.glob('*.dmg.json')):
@@ -447,24 +428,32 @@ class Build:
 
     # data ----------------------------------------------------------------------------------------------------------------
     def seed_name(self):
-        return f'data-{self.args.data_gib}g-skip-ov.dbr'
+        return f'data-{self.args.data_gib}g-27-gpu.dbr'
 
     def step_data(self):
-        self.seed_chain(self.data / 'data-2g-skip-app.dbr', [
-            ('data-2g-skip-gpu.dbr', ['add-gpu-plugin-data.py', '--publish', '--clients', GPU_CLIENTS]),
-            ('data-2g-skip-ov.dbr', ['add-ownervisor-data.py']),
+        # Start from the board's 24A446 seed, add the App cryptex, GPU plugin, debug shell and grow the store.
+        cryptex = self.scratch / self.app_cryptex()
+        shutil.copyfile(self.ipsw / self.app_cryptex(), cryptex)
+        self.seed_chain(self.data / 'data-2g-27.dbr', [
+            ('data-2g-27-app.dbr', ['add-app-cryptex-data.py', '{base}', str(cryptex), '{out}']),
+            ('data-2g-27-gpu.dbr', ['add-gpu-plugin-data.py', '--publish', '--clients', GPU_CLIENTS]),
+            ('data-2g-27-ov.dbr', ['add-ownervisor-data.py']),
             (self.seed_name(), ['seed-data-grow.py', '--gib', str(self.args.data_gib)])])
 
     # trust ---------------------------------------------------------------------------------------------------------------
     def step_trust(self):
-        self.script('make-owner-trust-bundle.py', logfile=self.logs / 'trust.log')
+        owners = []
+        for p in sorted((self.tree / 'build/owner-trust-extra').glob('*.json')):
+            owners += ['--owner', str(p)]
+        self.script('build-droidvm-trust.py', '--tree', str(self.tree), '--ipsw', str(self.ipsw), *owners,
+                    logfile=self.logs / 'trust.log')
 
     # payload -------------------------------------------------------------------------------------------------------------
     def step_payload(self):
         chip = self.args.unique_chip_id
         if not chip:
             sys.exit('the payload needs --unique-chip-id (or UNIXNU_UNIQUE_CHIP_ID): the platform seed, 16 hex digits')
-        self.unixnu_cmd('build', 'payload', '--owner-trust-cache', self.tree / 'build/adreno-metal-plugin/owner-trust.bundle',
+        self.unixnu_cmd('build', 'payload', '--owner-trust-cache', self.tree / 'build/droidvm-trust-24A446/owner.bundle',
                         '--data-ramdisk', self.data / self.seed_name(), '--unique-chip-id', chip,
                         logfile=self.logs / 'payload.log')
         run(['bash', DEVICE / 'scripts/make-droidvm-disk.sh', self.work / 'payload/payload.img', self.efi_dir(),
@@ -496,7 +485,7 @@ class Build:
             'darwinboot': commit(self.unixnu / 'drivers/DarwinBoot'),
             'data_seed': self.seed_name(), 'data_volume_uuid': json.loads(
                 (self.tree / 'build/owner-data-fixture/seed.json').read_text())['volume_uuid'],
-            'trust_sha256': sha256(self.tree / 'build/adreno-metal-plugin/owner-trust.bundle'),
+            'trust_sha256': sha256(self.tree / 'build/droidvm-trust-24A446/owner.bundle'),
             'plugin': {k: plugin[k] for k in ('cdhash', 'daemon_cdhash', 'turnip_cdhash')},
             'owner_tools': tools,
             'checks': json.loads((self.stamps / 'checks.json').read_text()) if (self.stamps / 'checks.json').is_file() else {},
