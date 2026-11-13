@@ -101,6 +101,8 @@ jobs:
           for p in sorted(Path('out/ipsw/24A446').glob('*.dmg.aea')):
               print(ipsw.decrypt_aea(p))
           PY
+          ln -sf 043-68950-668.dmg.aea.trustcache out/ipsw/24A446/044-76040-038.dmg.trustcache
+          ln -sf 043-69086-713.dmg.aea.trustcache out/ipsw/24A446/044-76034-038.dmg.trustcache
 
       - name: Build iPadOS 27 image
         working-directory: UniXNU-droidvm/ipados27
