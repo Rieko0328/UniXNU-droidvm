@@ -242,6 +242,13 @@ class Build:
         return base
 
     def step_data_base(self):
+        test = self.tree / 'drivers/DarwinBoot/Test'
+        if not test.is_dir():
+            src = self.unixnu / 'drivers/DarwinBoot'
+            dst = self.tree / 'drivers/DarwinBoot'
+            if dst.is_symlink():
+                dst = dst.resolve()
+            shutil.copytree(src, dst, dirs_exist_ok=True, symlinks=True)
         self.os_attachment()
         self.data.mkdir(parents=True, exist_ok=True)
         fixture = self.tree / 'build/owner-data-fixture'
