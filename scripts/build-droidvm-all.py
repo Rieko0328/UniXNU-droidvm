@@ -194,12 +194,9 @@ class Build:
                     '--os', str(self.ipsw / OS_DMG),
                     '--systemos', str(self.ipsw / SYSTEMOS_DMG),
                     '--tree', str(self.tree))
-        self.script('build-original-trust-from-members.py', self.ipsw)
-        # The App cryptex's own trust module, byte for byte (make-owner-trust-bundle.py accepts it by its pinned hash).
-        candidates = [p for p in self.ipsw.glob('*.trustcache') if sha256(p) == APP_TRUST_SHA256]
-        if not candidates:
-            sys.exit(f'no member of {self.ipsw} is the App cryptex trust cache (sha256 {APP_TRUST_SHA256})')
-        clone(candidates[0], self.tree / 'build/original-trust-extra/app.trustcache')
+        self.script('build-droidvm-trust.py',
+                    '--tree', str(self.tree),
+                    '--ipsw', str(self.ipsw))
 
     # data-base -----------------------------------------------------------------------------------------------------------
     def seed_script(self, name, *arguments):
