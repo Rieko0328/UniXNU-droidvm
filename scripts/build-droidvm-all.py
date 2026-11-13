@@ -284,6 +284,11 @@ class Build:
         if device.exists():
             shutil.rmtree(device)
         shutil.copytree(DEVICE, device, ignore=shutil.ignore_patterns('.git', '__pycache__', 'build', '.cache'))
+        for name in ('socs', 'package'):
+            link = out / name
+            source = DEVICE.parent / name
+            if source.exists() and not link.exists():
+                link.symlink_to(source.resolve(), target_is_directory=True)
         board = (device / 'board.toml').read_text()
         archives = '\n'.join(f'  "{entry}",' for entry in REFERENCE_ARCHIVES)
         board, count = re.subn(r'^archives = \[\n.*?^\]', 'archives = [\n' + archives + '\n]', board, flags=re.M | re.S)
