@@ -251,7 +251,7 @@ class Build:
                         '--profile', str(self.unixnu / 'profiles/os/ipados-27.0.1-24A446/profile.toml'),
                         '--ipsw', str(self.ipsw),
                         '--gib', '2',
-                        '--packer', str(self.tree / 'drivers/DarwinBoot/Test'),
+                        '--packer', str(self.unixnu / 'drivers/DarwinBoot/Test'),
                         logfile=self.logs / 'data-seed.log')
         self.apply_data_uuid()
 
