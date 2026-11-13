@@ -58,7 +58,7 @@ GPU_CLIENTS = 'WidgetRenderer_Default,PosterBoard,iconservicesagent'
 REFERENCE_OFF = ['NATIVE_VIRTIO_BLOCK', 'NATIVE_RAM_BLOCK', 'VERIFIED_ROOT_PROBE', 'OWNER_ROOT_AUDIT', 'OWNER_ROOT_TRUST',
                  'OWNER_CACHE_MOUNT', 'OWNER_CACHE_STARTUP', 'OWNER_BOOT_MANIFEST', 'OWNER_DATA_MOUNT', 'OWNER_UNION_SYSTEMOS',
                  'NATIVE_LEGACY_DISPLAY', 'BOARD_LAUNCH_POLICY']
-REFERENCE_ARCHIVES = ['build-corecrypto-14.py', 'build-corecrypto-14.py --namespace', 'build-arm-driver.py ArmDTPlatform', 'build-arm-driver.py ArmCpu',
+REFERENCE_ARCHIVES = ['build-corecrypto-14.py', 'build-corecrypto-14.py --namespace', 'build-droidvm-source-storage.py', 'build-arm-driver.py ArmDTPlatform', 'build-arm-driver.py ArmCpu',
                       'build-arm-driver.py NativeAES', 'build-native-aes-bindings.py', 'build-libpthread-kernel.py']
 
 
