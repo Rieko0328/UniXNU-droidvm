@@ -245,6 +245,8 @@ class Build:
         # The iPadOS 27 board's own seed: 24A446 /private/var, APFS expanded records and the J820 prefs.
         self.os_attachment()
         self.data.mkdir(parents=True, exist_ok=True)
+        if not (self.tree / 'configs').is_dir():
+            shutil.copytree(DEVICE / 'configs', self.tree / 'configs', dirs_exist_ok=True, symlinks=True)
         if not (self.data / 'data-2g-27.dbr').is_file():
             self.script('build-droidvm-data-seed.py',
                         '--tree', str(self.tree),
